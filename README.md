@@ -1,13 +1,13 @@
 Casset Package for Laravel 4
 ============================
 
-Casset is an asset manager for Laravel 4 applications. Some of the main features include:
+Casset is an asset manager for Laravel 4 applications. Some things it can do:
 
-* Create one or more containers of assets.
-* Compiles less files.
-* Combines assets into one file.
-* Minifies asset content.
-* Accepts assets from Laravel package public directories. <code>"package::js/file.js"</code>
+* Create one or more asset containers.
+* Compile less files.
+* Combine assets into one file.
+* Minify output.
+* Accept assets from Laravel package public directories. `"package::js/file.js"`
 
 Installation via Composer
 -------------------------
@@ -18,13 +18,29 @@ Add this to you composer.json file, in the require object;
 
 After that, run composer install to install Casset.
 
-Finally, add the service provider to `app/config/app.php`, within the `providers` array.
+Add the service provider to `app/config/app.php`, within the `providers` array.
 
 ```php
 'providers' => array(
 	// ...
 	'Mmanos\Casset\CassetServiceProvider',
 )
+```
+
+Finally, ensure the cache directory defined in the config file is created
+and writable by the web server (defaults to public/assets/cache).
+
+```console
+mkdir public/assets/cache
+chmod -R 777 public/assets/cache
+touch public/assets/cache/.gitignore
+```
+
+Edit public/assets/cache/.gitignore.
+
+```
+*
+!.gitignore
 ```
 
 Usage
