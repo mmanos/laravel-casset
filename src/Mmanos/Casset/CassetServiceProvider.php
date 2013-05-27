@@ -19,8 +19,6 @@ class CassetServiceProvider extends ServiceProvider {
 	public function boot()
 	{
 		$this->package('mmanos/casset');
-		
-		require_once __DIR__ . '/../../../vendor/leafo/lessphp/lessc.inc.php';
 	}
 
 	/**
