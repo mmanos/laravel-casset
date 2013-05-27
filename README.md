@@ -14,7 +14,7 @@ Installation via Composer
 
 Add this to you composer.json file, in the require object;
 
-    "mmanos/casset": "*"
+    "mmanos/casset": "1.*"
 
 After that, run composer install to install Casset.
 
@@ -31,9 +31,9 @@ Finally, ensure the cache directory defined in the config file is created
 and writable by the web server (defaults to public/assets/cache).
 
 ```console
-mkdir public/assets/cache
-chmod -R 777 public/assets/cache
-touch public/assets/cache/.gitignore
+$ mkdir public/assets/cache
+$ chmod -R 777 public/assets/cache
+$ touch public/assets/cache/.gitignore
 ```
 
 Edit public/assets/cache/.gitignore.
