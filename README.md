@@ -12,9 +12,20 @@ Casset is an asset manager for Laravel 4 applications. Some things it can do:
 Installation via Composer
 -------------------------
 
-Add this to you composer.json file, in the require object;
+Add this to you composer.json file, in the require object:
 
-    "mmanos/casset": "1.*"
+```javascript
+"mmanos/casset": "1.*"
+```
+
+Add this to your composer.json file, in the repositories array:
+
+```javascript
+{
+	"type": "vcs",
+	"url":  "git@bitbucket.org:mmanos/laravel-casset.git"
+}
+```
 
 After that, run composer install to install Casset.
 
