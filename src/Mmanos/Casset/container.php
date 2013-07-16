@@ -296,16 +296,18 @@ class Container
 	 */
 	public function combine(array $assets, $type)
 	{
-		$file = $this->cache_path . '/casset-' . $this->name;
-		$file .= ('script' === $type) ? '.js' : '.css';
-		
+		$paths = array();
 		$lastmod = 0;
 		foreach ($assets as $asset) {
+			$paths[] = $asset['path'];
 			$mod = \File::lastModified($asset['path']);
 			if ($mod > $lastmod) {
 				$lastmod = $mod;
 			}
 		}
+		
+		$file = $this->cache_path . '/casset-' . md5(implode(',', $paths) . $lastmod) . '-' . $this->name;
+		$file .= ('script' === $type) ? '.js' : '.css';
 		
 		$combine = false;
 		if (!\File::exists($file)) {
@@ -350,7 +352,7 @@ class Container
 		return array(array(
 			'path'       => $file,
 			'attributes' => array(),
-			'url'        => str_ireplace($this->public_path, '', $file) . "?ts=$lastmod",
+			'url'        => str_ireplace($this->public_path, '', $file),
 		));
 	}
 }
