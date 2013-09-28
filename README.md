@@ -15,7 +15,7 @@ Installation via Composer
 Add this to you composer.json file, in the require object:
 
 ```javascript
-"mmanos/casset": "1.*"
+"mmanos/laravel-casset": "dev-master"
 ```
 
 Add this to your composer.json file, in the repositories array:
