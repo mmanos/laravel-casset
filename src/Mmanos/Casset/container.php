@@ -179,16 +179,22 @@ class Container
 		$package_name = current($source_parts);
 		$finder       = \Symfony\Component\Finder\Finder::create();
 		
+		// Is this relative to the public dir?
+		$path = '/public/' . ltrim(end($source_parts), '/');
+		if ('/' === substr(end($source_parts), 0, 1)) {
+			$path = end($source_parts);
+		}
+		
 		// Try to find package path.
 		$vendor = base_path() . '/vendor';
 		foreach ($finder->directories()->in($vendor)->name($package_name)->depth('< 3') as $package) {
-			return $package->getPathname() . '/public/' . ltrim(end($source_parts), '/');
+			return $package->getPathname() . $path;
 		}
 		
 		// Try to find workbench path.
 		$workbench = base_path() . '/workbench';
 		foreach ($finder->directories()->in($workbench)->name($package_name)->depth('< 3') as $package) {
-			return $package->getPathname() . '/public/' . ltrim(end($source_parts), '/');
+			return $package->getPathname() . $path;
 		}
 		
 		return $source;

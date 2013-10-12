@@ -11,7 +11,7 @@
     "require": {
         "php": ">=5.3.0",
         "illuminate/support": "4.0.x",
-        "leafo/lessphp": "*"
+        "leafo/lessphp": "dev-master#85bd4557920d5f4fcbf41beb621e91b842e3621b"
     },
     "autoload": {
         "classmap": [
