@@ -18,15 +18,6 @@ Add this to you composer.json file, in the require object:
 "mmanos/laravel-casset": "dev-master"
 ```
 
-Add this to your composer.json file, in the repositories array:
-
-```javascript
-{
-	"type": "vcs",
-	"url":  "git@bitbucket.org:mmanos/laravel-casset.git"
-}
-```
-
 After that, run composer install to install Casset.
 
 Add the service provider to `app/config/app.php`, within the `providers` array.

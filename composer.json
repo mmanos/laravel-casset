@@ -1,7 +1,7 @@
 {
     "name": "mmanos/laravel-casset",
-    "description": "Asset management package for Laravel.",
-    "keywords": ["laravel"],
+    "description": "An asset management package for Laravel 4.",
+    "keywords": ["laravel", "assets", "asset", "css", "javascript", "less", "compression", "minification"],
     "authors": [
         {
             "name": "Mark Manos",
