@@ -29,6 +29,15 @@ Add the service provider to `app/config/app.php`, within the `providers` array.
 )
 ```
 
+Add a class alias to `app/config/app.php`, within the `aliases` array.
+
+```php
+'aliases' => array(
+	// ...
+	'Casset' => 'Mmanos\Casset\Casset',
+)
+```
+
 Finally, ensure the cache directory defined in the config file is created
 and writable by the web server (defaults to public/assets/cache).
 
@@ -60,6 +69,12 @@ Add assets to a custom container:
 ```php
 Casset::container('layout')->add('js/jquery.js');
 Casset::container('layout')->add('less/layout.less');
+```
+
+Add assets from a package:
+
+```php
+Casset::add('jquery::/jquery.min.js');
 ```
 
 Render HTML tags to load assets for a container:
