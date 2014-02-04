@@ -52,6 +52,13 @@ class Container
 	public $assets = array();
 	
 	/**
+	 * Local cache of paths.
+	 *
+	 * @var array
+	 */
+	public static $cached_paths = array();
+	
+	/**
 	 * Initialize an instance of this class.
 	 *
 	 * @param string $name Name of container.
@@ -177,7 +184,6 @@ class Container
 		
 		$source_parts = explode('::', $source);
 		$package_name = current($source_parts);
-		$finder       = \Symfony\Component\Finder\Finder::create();
 		
 		// Is this relative to the public dir?
 		$path = '/public/' . ltrim(end($source_parts), '/');
@@ -185,16 +191,25 @@ class Container
 			$path = end($source_parts);
 		}
 		
+		// Check local cache first.
+		if (array_key_exists($package_name, static::$cached_paths)) {
+			return static::$cached_paths[$package_name] . $path;
+		}
+		
+		$finder = \Symfony\Component\Finder\Finder::create();
+		
 		// Try to find package path.
 		$vendor = base_path() . '/vendor';
 		foreach ($finder->directories()->in($vendor)->name($package_name)->depth('< 3') as $package) {
-			return $package->getPathname() . $path;
+			static::$cached_paths[$package_name] = $package->getPathname();
+			return static::$cached_paths[$package_name] . $path;
 		}
 		
 		// Try to find workbench path.
 		$workbench = base_path() . '/workbench';
 		foreach ($finder->directories()->in($workbench)->name($package_name)->depth('< 3') as $package) {
-			return $package->getPathname() . $path;
+			static::$cached_paths[$package_name] = $package->getPathname();
+			return static::$cached_paths[$package_name] . $path;
 		}
 		
 		return $source;
