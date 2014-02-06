@@ -68,15 +68,15 @@ class Container
 	public function __construct($name)
 	{
 		$this->name         = $name;
-		$this->combine      = \Config::get('casset::combine', true);
-		$this->minify       = \Config::get('casset::minify', true);
+		$this->combine      = \Config::get('laravel-casset::combine', true);
+		$this->minify       = \Config::get('laravel-casset::minify', true);
 		$this->public_path  = public_path();
 		$this->assets_path  = $this->public_path
 			. '/'
-			. trim(\Config::get('casset::assets_dir', 'assets'), '/');
+			. trim(\Config::get('laravel-casset::assets_dir', 'assets'), '/');
 		$this->cache_path   = $this->public_path
 			. '/'
-			. trim(\Config::get('casset::cache_dir', 'assets/cache'), '/');
+			. trim(\Config::get('laravel-casset::cache_dir', 'assets/cache'), '/');
 	}
 	
 	/**

@@ -18,7 +18,7 @@ class CassetServiceProvider extends ServiceProvider {
 	 */
 	public function boot()
 	{
-		$this->package('mmanos/casset');
+		$this->package('mmanos/laravel-casset');
 	}
 
 	/**
