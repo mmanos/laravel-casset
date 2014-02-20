@@ -52,11 +52,32 @@ class Container
 	public $assets = array();
 	
 	/**
+	 * Array of global dependencies which all assets are checked against.
+	 *
+	 * @var array
+	 */
+	public $dependencies = array();
+	
+	/**
+	 * Local cache of all assets and whether or not they needed processing.
+	 *
+	 * @var array
+	 */
+	protected static $needs_processing = array();
+	
+	/**
+	 * Local cache of all assets that have already been processed.
+	 *
+	 * @var array
+	 */
+	protected static $processed = array();
+	
+	/**
 	 * Local cache of paths.
 	 *
 	 * @var array
 	 */
-	public static $cached_paths = array();
+	protected static $cached_paths = array();
 	
 	/**
 	 * Initialize an instance of this class.
@@ -88,16 +109,17 @@ class Container
 	 * Also accepts a source relative to a package.
 	 *   eg: 'package::js/file.js'
 	 *
-	 * @param string $source     Relative path to file.
-	 * @param array  $attributes Attribuets array.
+	 * @param string $source       Relative path to file.
+	 * @param array  $attributes   Attribuets array.
+	 * @param array  $dependencies Dependencies array.
 	 * 
 	 * @return Container
 	 */
-	public function add($source, array $attributes = array())
+	public function add($source, array $attributes = array(), array $dependencies = array())
 	{
 		$ext = pathinfo($source, PATHINFO_EXTENSION);
 		
-		$this->assets[] = compact('ext', 'source', 'attributes');
+		$this->assets[] = compact('ext', 'source', 'attributes', 'dependencies');
 		
 		return $this;
 	}
@@ -169,6 +191,20 @@ class Container
 	}
 	
 	/**
+	 * Add a global dependency.
+	 *
+	 * @param string $source Relative path to file.
+	 * 
+	 * @return Container
+	 */
+	public function dependency($source)
+	{
+		$this->dependencies[pathinfo($source, PATHINFO_EXTENSION)][] = $source;
+		
+		return $this;
+	}
+	
+	/**
 	 * Get the full path to the given asset source. Will try to load from a
 	 * package/workbench if prefixed with: "{package_name}::".
 	 *
@@ -216,9 +252,106 @@ class Container
 	}
 	
 	/**
+	 * Return the public path to the given asset.
+	 * The if the file is not in the public directory,
+	 * or if it needs to be compiled (less, etc...), then the
+	 * public cache path is returned.
+	 *
+	 * @param array $asset Asset array.
+	 * 
+	 * @return string
+	 */
+	public function publicPath(array $asset)
+	{
+		$path          = $this->path($asset['source']);
+		$is_public     = (bool) stristr($path, $this->public_path);
+		$compiled_exts = array('less');
+		
+		if ($is_public && !in_array($asset['ext'], $compiled_exts)) {
+			return $path;
+		}
+		
+		$cache_path = $this->cache_path
+			. '/'
+			. str_replace(array('/', '::'), '-', $asset['source']);
+		
+		$cache_path .= ('less' === $asset['ext']) ? '.css' : '';
+		
+		return $cache_path;
+	}
+	
+	/**
+	 * Returns whether or not a file needs to be processed.
+	 *
+	 * @param array $asset Asset array.
+	 * 
+	 * @return boolean
+	 */
+	public function needsProcessing(array $asset)
+	{
+		if (isset(static::$needs_processing[$asset['source']])) {
+			return static::$needs_processing[$asset['source']];
+		}
+		
+		$path          = $this->path($asset['source']);
+		$is_public     = (bool) stristr($path, $this->public_path);
+		$compiled_exts = array('less');
+		
+		// Any dependencies that need processing?
+		$dependencies = isset($asset['dependencies']) ? $asset['dependencies'] : array();
+		$dependencies = array_unique(array_merge(array_get($this->dependencies, $asset['ext'], array()), $dependencies));
+		if (!empty($dependencies)) {
+			foreach ($dependencies as $dep_source) {
+				if (!empty(static::$needs_processing[$dep_source])) {
+					return static::$needs_processing[$asset['source']] = true;
+				}
+			}
+		}
+		
+		// This file does not require processing.
+		if ($is_public && !in_array($asset['ext'], $compiled_exts)) {
+			return static::$needs_processing[$asset['source']] = false;
+		}
+		
+		$cache_path = $this->publicPath($asset);
+		
+		// Does file exist?
+		if (!\File::exists($cache_path)) {
+			return static::$needs_processing[$asset['source']] = true;
+		}
+		
+		// Is cached file newer than the original?
+		if (\File::lastModified($cache_path) >= \File::lastModified($path)) {
+			return static::$needs_processing[$asset['source']] = false;
+		}
+		
+		// Check md5 to see if content is the same.
+		if ($f = fopen($cache_path, 'r')) {
+			$line = (string) fgets($f);
+			fclose($f);
+			
+			if (false !== strstr($line, '*/')) {
+				$md5 = trim(str_replace(array('/*', '*/'), '', $line));
+				
+				if (32 == strlen($md5)) {
+					$file_md5 = md5_file($path);
+					
+					// Skip compiling and touch existing file.
+					if ($file_md5 === $md5) {
+						touch($cache_path);
+						return false;
+					}
+				}
+			}
+		}
+		
+		return static::$needs_processing[$asset['source']] = true;
+	}
+	
+	/**
 	 * Process the given asset.
 	 * Make public, if needed.
-	 * Compile, if needed (lessphp, etc...).
+	 * Compile, if needed (less, etc...).
 	 * 
 	 * Returns a valid asset.
 	 *
@@ -228,56 +361,35 @@ class Container
 	 */
 	public function process(array $asset)
 	{
-		$path          = $this->path($asset['source']);
-		$is_public     = (bool) stristr($path, $this->public_path);
-		$compiled_exts = array('less');
-		
-		// This file requires processing.
-		if (!$is_public || in_array($asset['ext'], $compiled_exts)) {
-			$cache_path = $this->cache_path . '/'
-				. str_replace(array('/', '::'), '-', $asset['source']);
-			$cache_path .= ('less' === $asset['ext']) ? '.css' : '';
-			
-			$compile = false;
-			if (!\File::exists($cache_path)) {
-				$compile = true;
-			}
-			else if (\File::lastModified($cache_path) < \File::lastModified($path)) {
-				$compile = true;
+		// Any dependencies that need processing?
+		$dependencies = isset($asset['dependencies']) ? $asset['dependencies'] : array();
+		$dependencies = array_unique(array_merge(array_get($this->dependencies, $asset['ext'], array()), $dependencies));
+		if (!empty($dependencies)) {
+			foreach ($dependencies as $dep_source) {
+				if ($asset['source'] == $dep_source) {
+					continue;
+				}
 				
-				// Check md5 to see if content is the same.
-				if ($f = fopen($cache_path, 'r')) {
-					$line = (string) fgets($f);
-					fclose($f);
-					
-					if (false !== strstr($line, '*/')) {
-						$md5 = trim(str_replace(array('/*', '*/'), '', $line));
-						
-						if (32 == strlen($md5)) {
-							$file_md5 = md5_file($path);
-							
-							// Skip compiling and touch existing file.
-							if ($file_md5 === $md5) {
-								$compile = false;
-								touch($cache_path);
-							}
-						}
-					}
-				}
+				$this->process(array(
+					'source' => $dep_source,
+					'ext'    => pathinfo($dep_source, PATHINFO_EXTENSION),
+				));
 			}
-			
-			if ($compile) {
-				if (\File::exists($path)) {
-					$content = $this->compile($path);
-					\File::put($cache_path, $content);
-				}
-			}
-			
-			$path = $cache_path;
 		}
 		
-		$asset['path'] = $path;
-		$asset['url']  = str_ireplace($this->public_path, '', $path);
+		$path        = $this->path($asset['source']);
+		$public_path = $this->publicPath($asset);
+		
+		if (empty(static::$processed[$asset['source']]) && $this->needsProcessing($asset)) {
+			if (\File::exists($path)) {
+				\File::put($public_path, $this->compile($path));
+			}
+		}
+		
+		$asset['path'] = $public_path;
+		$asset['url']  = str_ireplace($this->public_path, '', $public_path);
+		
+		static::$processed[$asset['source']] = true;
 		
 		return $asset;
 	}
