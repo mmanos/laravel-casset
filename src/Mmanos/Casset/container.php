@@ -292,15 +292,15 @@ class Container
 	 */
 	public function compile($path)
 	{
-		$content = \File::get($path);
-		
 		switch (pathinfo($path, PATHINFO_EXTENSION)) {
 			case 'less':
-				$less = new \lessc;
-				$less->addImportDir(dirname($path));
-				$content = '/*' . md5($content) . "*/\n" . $less->compile($content);
+				$less = new \Less_Parser;
+				$content = '/*' . md5(\File::get($path)) . "*/\n" . $less->parseFile($path)->getCss();
 				
 				break;
+				
+			default:
+				$content = \File::get($path);
 		}
 		
 		return $content;
