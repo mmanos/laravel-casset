@@ -79,6 +79,13 @@ Casset::add('less/variables.less');
 Casset::add('less/layout.less', array(), array('less/variables.less'));
 ```
 
+Add a global dependency for all assets (of the same file type):
+
+```php
+Casset::dependency('less/variables.less');
+Casset::container('layout')->dependency('less/variables.less');
+```
+
 Add assets from a package:
 
 ```php
