@@ -8,6 +8,7 @@ Casset is an asset manager for Laravel 4 applications. Some things it can do:
 * Combine assets into one file.
 * Minify output.
 * Accept assets from Laravel package public directories. `"package::/js/file.js"`
+* Define dependencies for an asset.
 
 Installation via Composer
 -------------------------
@@ -69,6 +70,13 @@ Add assets to a custom container:
 ```php
 Casset::container('layout')->add('js/jquery.js');
 Casset::container('layout')->add('less/layout.less');
+```
+
+Add an asset with a dependency on another asset:
+
+```php
+Casset::add('less/variables.less');
+Casset::add('less/layout.less', array(), array('less/variables.less'));
 ```
 
 Add assets from a package:
