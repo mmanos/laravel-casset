@@ -120,8 +120,6 @@ class Container
 		$ext = pathinfo($source, PATHINFO_EXTENSION);
 		
 		$this->assets[] = compact('ext', 'source', 'attributes', 'dependencies');
-		
-		return $this;
 	}
 	
 	/**
@@ -200,8 +198,6 @@ class Container
 	public function dependency($source)
 	{
 		$this->dependencies[pathinfo($source, PATHINFO_EXTENSION)][] = $source;
-		
-		return $this;
 	}
 	
 	/**
