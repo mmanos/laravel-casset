@@ -45,6 +45,13 @@ class Container
 	public $minify;
 	
 	/**
+	 * URL of CDN to use for assets.
+	 *
+	 * @var string
+	 */
+	public $cdn;
+	
+	/**
 	 * All of the registered assets.
 	 *
 	 * @var array
@@ -91,6 +98,7 @@ class Container
 		$this->name         = $name;
 		$this->combine      = \Config::get('laravel-casset::combine', true);
 		$this->minify       = \Config::get('laravel-casset::minify', true);
+		$this->cdn          = rtrim(\Config::get('laravel-casset::cdn', ''), '/');
 		$this->public_path  = public_path();
 		$this->assets_path  = $this->public_path
 			. '/'
@@ -149,7 +157,8 @@ class Container
 		
 		$links = array();
 		foreach ($assets as $asset) {
-			$links[] = \HTML::style($asset['url'], $asset['attributes']);
+			$url = $this->cdn ? $this->cdn . $asset['url'] : $asset['url'];
+			$links[] = \HTML::style($url, $asset['attributes']);
 		}
 		
 		return implode('', $links);
@@ -182,7 +191,8 @@ class Container
 		
 		$links = array();
 		foreach ($assets as $asset) {
-			$links[] = \HTML::script($asset['url'], $asset['attributes']);
+			$url = $this->cdn ? $this->cdn . $asset['url'] : $asset['url'];
+			$links[] = \HTML::script($url, $asset['attributes']);
 		}
 		
 		return implode('', $links);
