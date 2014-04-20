@@ -199,6 +199,25 @@ class Container
 	}
 	
 	/**
+	 * Add an image asset to the container.
+	 * 
+	 * @param string $source
+	 * @param string $alt
+	 * @param array  $attributes
+	 * 
+	 * @return string
+	 */
+	public function image($source, $alt = null, $attributes = array())
+	{
+		$url = $source;
+		if (false === strstr($source, '://')) {
+			$url = $this->cdn ? $this->cdn . '/' . ltrim($source, '/') : $source;
+		}
+		
+		return \HTML::image($url, $alt, $attributes);
+	}
+	
+	/**
 	 * Add a global dependency.
 	 *
 	 * @param string $source Relative path to file.
