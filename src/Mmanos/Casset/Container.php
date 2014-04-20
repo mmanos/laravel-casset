@@ -210,8 +210,10 @@ class Container
 	public function image($source, $alt = null, $attributes = array())
 	{
 		$url = $source;
-		if (false === strstr($source, '://')) {
-			$url = $this->cdn ? $this->cdn . '/' . ltrim($source, '/') : $source;
+		
+		if (false === strstr($source, '://') && '//' !== substr($source, 0, 2)) {
+			$url = str_ireplace($this->public_path, '', $this->assets_path . '/' . ltrim($source, '/'));
+			$url = $this->cdn ? $this->cdn . $url : $url;
 		}
 		
 		return \HTML::image($url, $alt, $attributes);
