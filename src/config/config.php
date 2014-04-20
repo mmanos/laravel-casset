@@ -12,7 +12,7 @@ return array(
 	|
 	*/
 
-	'combine' => empty($_GET['no_min']) ? true : false,
+	'combine' => false,
 
 	/*
 	|--------------------------------------------------------------------------
