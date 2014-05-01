@@ -212,8 +212,7 @@ class Container
 		$url = $source;
 		
 		if (false === strstr($source, '://') && '//' !== substr($source, 0, 2)) {
-			$url = str_ireplace($this->public_path, '', $this->assets_path . '/' . ltrim($source, '/'));
-			$url = $this->cdn ? $this->cdn . $url : $url;
+			$url = $this->cdn($source);
 		}
 		
 		return \HTML::image($url, $alt, $attributes);
