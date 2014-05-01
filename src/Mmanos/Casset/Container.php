@@ -212,11 +212,24 @@ class Container
 		$url = $source;
 		
 		if (false === strstr($source, '://') && '//' !== substr($source, 0, 2)) {
-			$url = str_ireplace($this->public_path, '', $this->assets_path . '/' . ltrim($source, '/'));
-			$url = $this->cdn ? $this->cdn . $url : $url;
+			$url = $this->cdn($source);
 		}
 		
 		return \HTML::image($url, $alt, $attributes);
+	}
+	
+	/**
+	 * Get the URL to the CDN for an asset.
+	 *
+	 * @param string $source
+	 *
+	 * @return string
+	 */
+	public function cdn($source)
+	{
+		$url = str_ireplace($this->public_path, '', $this->assets_path . '/' . ltrim($source, '/'));
+		$url = $this->cdn ? $this->cdn . $url : $url;
+		return $url;
 	}
 	
 	/**
