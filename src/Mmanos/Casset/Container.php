@@ -220,6 +220,20 @@ class Container
 	}
 	
 	/**
+	 * Get the URL to the CDN for an asset.
+	 *
+	 * @param string $source
+	 *
+	 * @return string
+	 */
+	public function cdn($source)
+	{
+		$url = str_ireplace($this->public_path, '', $this->assets_path . '/' . ltrim($source, '/'));
+		$url = $this->cdn ? $this->cdn . $url : $url;
+		return $url;
+	}
+	
+	/**
 	 * Add a global dependency.
 	 *
 	 * @param string $source Relative path to file.
