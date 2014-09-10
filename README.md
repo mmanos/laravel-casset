@@ -10,11 +10,13 @@ Casset is an asset manager for Laravel 4 applications. Some things it can do:
 * Accept assets from Laravel package public directories. `"package::/js/file.js"`
 * Define dependencies for an asset.
 * Define global dependencies for all assets of the same file type.
+* Define an optional CDN for asset URLs.
+* Optionally defer processing/combining assets to a controller (useful when distributing page requests across multiple servers).
 
 Installation via Composer
 -------------------------
 
-Add this to you composer.json file, in the require object:
+Add this to your composer.json file, in the require object:
 
 ```javascript
 "mmanos/laravel-casset": "dev-master"
@@ -36,7 +38,7 @@ Add a class alias to `app/config/app.php`, within the `aliases` array.
 ```php
 'aliases' => array(
 	// ...
-	'Casset' => 'Mmanos\Casset\Casset',
+	'Casset' => 'Mmanos\Casset\Facades\Casset',
 )
 ```
 
@@ -54,6 +56,18 @@ Edit public/assets/cache/.gitignore.
 ```
 *
 !.gitignore
+```
+
+Upgrading to 1.3 from 1.2.x
+---------------------------
+
+Simply update the class alias in `app/config/app.php` to point to the new Facade:
+
+```php
+'aliases' => array(
+	// ...
+	'Casset' => 'Mmanos\Casset\Facades\Casset',
+)
 ```
 
 Usage
@@ -96,6 +110,12 @@ Casset::add('jquery::/jquery.min.js');
 Render HTML tags to load assets for a container:
 
 ```php
-echo Casset::container('default')->styles();
-echo Casset::container('layout')->scripts();
+{{ Casset::container('default')->styles() }}
+{{ Casset::container('layout')->scripts() }}
+```
+
+Generate a URL to an asset on the CDN server:
+
+```php
+<img src="{{ Casset::cdn('logo.png') }}" />
 ```

@@ -1,5 +1,11 @@
 <?php namespace Mmanos\Casset;
 
+use Closure;
+use Less_Parser;
+use Illuminate\Support\Facades\HTML;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Config;
+
 class Container
 {
 	/**
@@ -31,6 +37,13 @@ class Container
 	public $cache_path;
 	
 	/**
+	 * Casset controller route.
+	 *
+	 * @var string
+	 */
+	public $route;
+	
+	/**
 	 * Whether or not to combine resources into a single file.
 	 *
 	 * @var boolean
@@ -50,6 +63,13 @@ class Container
 	 * @var string
 	 */
 	public $cdn;
+	
+	/**
+	 * Version number to append to each controller URL.
+	 *
+	 * @var string
+	 */
+	public $version;
 	
 	/**
 	 * All of the registered assets.
@@ -95,17 +115,25 @@ class Container
 	 */
 	public function __construct($name)
 	{
-		$this->name         = $name;
-		$this->combine      = \Config::get('laravel-casset::combine', true);
-		$this->minify       = \Config::get('laravel-casset::minify', true);
-		$this->cdn          = rtrim(\Config::get('laravel-casset::cdn', ''), '/');
-		$this->public_path  = public_path();
-		$this->assets_path  = $this->public_path
+		$this->name    = $name;
+		$this->route   = Config::get('laravel-casset::route');
+		$this->combine = Config::get('laravel-casset::combine', true);
+		$this->minify  = Config::get('laravel-casset::minify', true);
+		$this->cdn     = rtrim(Config::get('laravel-casset::cdn', ''), '/');
+		
+		$this->public_path = public_path();
+		$this->assets_path = $this->public_path
 			. '/'
-			. trim(\Config::get('laravel-casset::assets_dir', 'assets'), '/');
-		$this->cache_path   = $this->public_path
+			. trim(Config::get('laravel-casset::assets_dir', 'assets'), '/');
+		$this->cache_path  = $this->public_path
 			. '/'
-			. trim(\Config::get('laravel-casset::cache_dir', 'assets/cache'), '/');
+			. trim(Config::get('laravel-casset::cache_dir', 'assets/cache'), '/');
+		
+		$this->version = Config::get('laravel-casset::controller_version');
+		if ($this->route && $this->version && $this->version instanceof Closure) {
+			$v = $this->version;
+			$this->version = (string) $v();
+		}
 	}
 	
 	/**
@@ -127,7 +155,7 @@ class Container
 	{
 		$ext = pathinfo($source, PATHINFO_EXTENSION);
 		
-		$this->assets[] = compact('ext', 'source', 'attributes', 'dependencies');
+		$this->assets[$source] = compact('ext', 'source', 'attributes', 'dependencies');
 	}
 	
 	/**
@@ -144,11 +172,15 @@ class Container
 				continue;
 			}
 			
-			$assets[] = $this->process($asset);
+			$assets[] = $this->route ? $asset : $this->process($asset);
 		}
 		
 		if (empty($assets)) {
 			return '';
+		}
+		
+		if ($this->route) {
+			return $this->prepareForController($assets, 'style');
 		}
 		
 		if ($this->combine) {
@@ -158,7 +190,7 @@ class Container
 		$links = array();
 		foreach ($assets as $asset) {
 			$url = $this->cdn ? $this->cdn . $asset['url'] : $asset['url'];
-			$links[] = \HTML::style($url, $asset['attributes']);
+			$links[] = HTML::style($url, $asset['attributes']);
 		}
 		
 		return implode('', $links);
@@ -178,11 +210,15 @@ class Container
 				continue;
 			}
 			
-			$assets[] = $this->process($asset);
+			$assets[] = $this->route ? $asset : $this->process($asset);
 		}
 		
 		if (empty($assets)) {
 			return '';
+		}
+		
+		if ($this->route) {
+			return $this->prepareForController($assets, 'script');
 		}
 		
 		if ($this->combine) {
@@ -192,10 +228,104 @@ class Container
 		$links = array();
 		foreach ($assets as $asset) {
 			$url = $this->cdn ? $this->cdn . $asset['url'] : $asset['url'];
-			$links[] = \HTML::script($url, $asset['attributes']);
+			$links[] = HTML::script($url, $asset['attributes']);
 		}
 		
 		return implode('', $links);
+	}
+	
+	/**
+	 * Prepare the given assets to be rendered to call the Casset controller
+	 * and return the HTML link to that resource.
+	 *
+	 * @param array  $assets
+	 * @param string $type
+	 * 
+	 * @return string
+	 */
+	public function prepareForController($assets, $type)
+	{
+		$controller_url = $this->cdn ? $this->cdn . '/' : '/';
+		$controller_url .= $this->route . '/' . $type;
+		$controller_url .= '?c=' . urlencode($this->name);
+		
+		$links = array();
+		
+		foreach ($assets as &$asset) {
+			$attributes = $asset['attributes'];
+			unset($asset['attributes']);
+			unset($asset['ext']);
+			
+			if (empty($asset['dependencies'])) {
+				unset($asset['dependencies']);
+			}
+			
+			if (!$this->combine) {
+				$url = $controller_url . '&files=' . base64_encode(json_encode(array($asset)));
+				$url .= $this->version ? '&v=' . $this->version : '';
+				
+				if ('style' == $type) {
+					$links[] = HTML::style($url, $attributes);
+				}
+				else {
+					$links[] = HTML::script($url, $attributes);
+				}
+			}
+		}
+		
+		if ($this->combine) {
+			$url = $controller_url . '&files=' . base64_encode(json_encode($assets));
+			$url .= $this->version ? '&v=' . $this->version : '';
+			
+			if ('style' == $type) {
+				$links[] = HTML::style($url);
+			}
+			else {
+				$links[] = HTML::script($url);
+			}
+		}
+		
+		return implode('', $links);
+	}
+	
+	/**
+	 * Process and return the contents for this container for the
+	 * requested file type.
+	 *
+	 * @param string $type 'style' or 'script'
+	 * 
+	 * @return string
+	 */
+	public function content($type)
+	{
+		$assets = array();
+		
+		foreach ($this->assets as $asset) {
+			if ('style' == $type && 'css' !== $asset['ext'] && 'less' !== $asset['ext']) {
+				continue;
+			}
+			else if ('script' == $type && 'js' !== $asset['ext']) {
+				continue;
+			}
+			
+			$assets[] = $this->process($asset);
+		}
+		
+		if (empty($assets)) {
+			return '';
+		}
+		
+		if (count($assets) > 1 || $this->minify) {
+			$assets = $this->combine($assets, $type);
+		}
+		
+		$content = array();
+		
+		foreach ($assets as $asset) {
+			$content[] = File::get(array_get($asset, 'path'));
+		}
+		
+		return implode("\n\n", $content);
 	}
 	
 	/**
@@ -215,7 +345,7 @@ class Container
 			$url = $this->cdn($source);
 		}
 		
-		return \HTML::image($url, $alt, $attributes);
+		return HTML::image($url, $alt, $attributes);
 	}
 	
 	/**
@@ -293,7 +423,7 @@ class Container
 	
 	/**
 	 * Return the public path to the given asset.
-	 * The if the file is not in the public directory,
+	 * If the file is not in the public directory,
 	 * or if it needs to be compiled (less, etc...), then the
 	 * public cache path is returned.
 	 *
@@ -356,12 +486,12 @@ class Container
 		$cache_path = $this->publicPath($asset);
 		
 		// Does file exist?
-		if (!\File::exists($cache_path)) {
+		if (!File::exists($cache_path)) {
 			return static::$needs_processing[$asset['source']] = true;
 		}
 		
 		// Is cached file newer than the original?
-		if (\File::lastModified($cache_path) >= \File::lastModified($path)) {
+		if (File::lastModified($cache_path) >= File::lastModified($path)) {
 			return static::$needs_processing[$asset['source']] = false;
 		}
 		
@@ -421,8 +551,8 @@ class Container
 		$public_path = $this->publicPath($asset);
 		
 		if (empty(static::$processed[$asset['source']]) && $this->needsProcessing($asset)) {
-			if (\File::exists($path)) {
-				\File::put($public_path, $this->compile($path));
+			if (File::exists($path)) {
+				File::put($public_path, $this->compile($path));
 			}
 		}
 		
@@ -446,13 +576,13 @@ class Container
 	{
 		switch (pathinfo($path, PATHINFO_EXTENSION)) {
 			case 'less':
-				$less = new \Less_Parser;
-				$content = '/*' . md5(\File::get($path)) . "*/\n" . $less->parseFile($path)->getCss();
+				$less = new Less_Parser;
+				$content = '/*' . md5(File::get($path)) . "*/\n" . $less->parseFile($path)->getCss();
 				
 				break;
 				
 			default:
-				$content = \File::get($path);
+				$content = File::get($path);
 		}
 		
 		return $content;
@@ -473,7 +603,7 @@ class Container
 		$lastmod = 0;
 		foreach ($assets as $asset) {
 			$paths[] = $asset['path'];
-			$mod = \File::lastModified($asset['path']);
+			$mod = File::lastModified($asset['path']);
 			if ($mod > $lastmod) {
 				$lastmod = $mod;
 			}
@@ -483,10 +613,10 @@ class Container
 		$file .= ('script' === $type) ? '.js' : '.css';
 		
 		$combine = false;
-		if (!\File::exists($file)) {
+		if (!File::exists($file)) {
 			$combine = true;
 		}
-		else if (\File::lastModified($file) < $lastmod) {
+		else if (File::lastModified($file) < $lastmod) {
 			$combine = true;
 		}
 		
@@ -494,11 +624,11 @@ class Container
 			$content = '';
 			
 			foreach ($assets as $asset) {
-				if (!\File::exists($asset['path'])) {
+				if (!File::exists($asset['path'])) {
 					continue;
 				}
 				
-				$c = \File::get($asset['path']);
+				$c = File::get($asset['path']);
 				
 				if ($this->minify
 					&& !(stripos($asset['source'], '.min')
@@ -519,7 +649,7 @@ class Container
 				$content .= "/* {$asset['source']} */\n$c\n\n";
 			}
 			
-			\File::put($file, $content);
+			File::put($file, $content);
 		}
 		
 		return array(array(

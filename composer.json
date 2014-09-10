@@ -11,11 +11,12 @@
     "require": {
         "php": ">=5.3.0",
         "illuminate/support": "4.x",
-        "oyejorge/less.php": "1.6.*"
+        "oyejorge/less.php": "1.7.*"
     },
     "autoload": {
         "classmap": [
-            "src/migrations"
+            "src/migrations",
+            "src/controllers"
         ],
         "psr-0": {
             "Mmanos\\Casset": "src/"

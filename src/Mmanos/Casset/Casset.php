@@ -7,7 +7,7 @@ class Casset
 	 *
 	 * @var array
 	 */
-	public static $containers = array();
+	protected $containers = array();
 	
 	/**
 	 * Retrieve the requested asset container object.
@@ -16,28 +16,25 @@ class Casset
 	 * 
 	 * @return Container
 	 */
-	public static function container($container = 'default')
+	public function container($container = 'default')
 	{
-		if (!isset(static::$containers[$container])) {
-			static::$containers[$container] = new Container($container);
+		if (!isset($this->containers[$container])) {
+			$this->containers[$container] = new Container($container);
 		}
 		
-		return static::$containers[$container];
+		return $this->containers[$container];
 	}
 	
 	/**
-	 * Magic Method for calling methods on the default container.
+	 * Provide convenient access to methods on the default container.
 	 *
-	 * <code>
-	 *		// Call the "add" method on the default container
-	 *		Casset::add('js/jquery.js');
-	 *		
-	 *		// Or load an asset from a package
-	 *		Casset::add('package::js/file.js')
-	 * </code>
+	 * @param string $method
+	 * @param array  $parameters
+	 * 
+	 * @return mixed
 	 */
-	public static function __callStatic($method, $parameters)
+	public function __call($method, array $parameters)
 	{
-		return call_user_func_array(array(static::container(), $method), $parameters);
+		return call_user_func_array(array($this->container(), $method), $parameters);
 	}
 }
