@@ -101,10 +101,10 @@ Casset::dependency('less/variables.less');
 Casset::container('layout')->dependency('less/variables.less');
 ```
 
-Add assets from a package:
+Add assets from a composer package (vendorName/packageName):
 
 ```php
-Casset::add('jquery::/jquery.min.js');
+Casset::add('frameworks/jquery::/jquery.min.js');
 ```
 
 Render HTML tags to load assets for a container:

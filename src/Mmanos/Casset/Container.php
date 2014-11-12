@@ -404,21 +404,15 @@ class Container
 		
 		$finder = \Symfony\Component\Finder\Finder::create();
 		
-		// Try to find package path.
-		$vendor = base_path() . '/vendor';
-		foreach ($finder->directories()->in($vendor)->name($package_name)->depth('< 3') as $package) {
-			static::$cached_paths[$package_name] = $package->getPathname();
-			return static::$cached_paths[$package_name] . $path;
-		}
-		
-		// Try to find workbench path.
+		// Try to find in workbench, first.
 		$workbench = base_path() . '/workbench';
-		foreach ($finder->directories()->in($workbench)->name($package_name)->depth('< 3') as $package) {
-			static::$cached_paths[$package_name] = $package->getPathname();
-			return static::$cached_paths[$package_name] . $path;
+		if (file_exists($workbench . '/' . $package_name . $path)) {
+			return $workbench . '/' . $package_name . $path;
 		}
 		
-		return $source;
+		// Use package path.
+		$vendor = base_path() . '/vendor';
+		return $vendor . '/' . $package_name . $path;
 	}
 	
 	/**
