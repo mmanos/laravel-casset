@@ -7,7 +7,7 @@ Casset is an asset manager for Laravel 4 applications. Some things it can do:
 * Compile less files.
 * Combine assets into one file.
 * Minify output.
-* Accept assets from Laravel package public directories. `"package::/js/file.js"`
+* Accept assets from Laravel package public directories. `"vendor/package::/js/file.js"`
 * Define dependencies for an asset.
 * Define global dependencies for all assets of the same file type.
 * Define an optional CDN for asset URLs.
